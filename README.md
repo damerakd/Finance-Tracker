@@ -25,8 +25,9 @@ npm run preview
 - Three summary cards: total income, total expenses, net balance
 - Filter the table by All / Income / Expenses
 - Add or remove your own categories
+- **Upload a receipt or statement image → Gemini extracts entries → you review before saving**
 - Export all data to a JSON file, import it back later
-- Data stays in your browser — nothing is sent anywhere
+- Data stays in your browser (except images you explicitly upload to Gemini)
 
 ## Data model
 
@@ -111,7 +112,29 @@ Kept minimal so the form doesn't fight the user. Non-obvious edge cases (e.g. fu
 
 ### Schema versioning
 
-Every localStorage blob is stamped with `version: 1`. If we ever change the entry shape, the loader can detect old versions and migrate them instead of crashing or silently dropping data.
+Every localStorage blob is stamped with a `version` field. If we ever change the entry shape, the loader can detect old versions and migrate them instead of crashing or silently dropping data. (Bumped to v2 when the `settings` slot was added.)
+
+### Image parsing: Gemini vision, bring-your-own-key
+
+**Chosen over:** Tesseract.js (free, poor accuracy), AWS Textract (needs backend), OpenAI/Claude vision (paid only), Ollama local (needs install + GPU).
+
+We needed a parser that:
+- Runs against a **static site** (no backend to babysit)
+- Is **free** for personal volume
+- Handles **both receipts (1 entry) and statements (N entries)** with the same call
+- Returns **structured JSON** directly (no regex on OCR output)
+
+Gemini 1.5/2.0 Flash is the only option that hits all four. Free tier (1,500 requests/day) easily covers personal use. `response_mime_type: "application/json"` forces structured output so we avoid parsing prose.
+
+**Bring-your-own-key** — the user pastes a Gemini API key once; it's stored in `localStorage` under `settings.geminiApiKey`. The key never leaves their browser, never hits our repo, never hits any server we run. The tradeoff: anyone with access to the browser can read the key. Acceptable for a personal tracker.
+
+**API key is excluded from `Export`** — a JSON export is safe to share/back up without leaking the key. `Import` preserves the existing local key rather than overwriting with whatever (or nothing) is in the file.
+
+**Always review before save** — OCR/LLM amount misreads are real (`$1200` vs `$12.00` on a crumpled receipt). Extracted entries go into a review modal with editable date/type/category/amount/description and an include checkbox. Never auto-save.
+
+**Privacy note in the README and UI** — uploading an image sends that image to Google. For receipts that's usually fine; for statements with account numbers, users should redact first or skip.
+
+**All Gemini logic is behind `src/geminiApi.js`** — same "one module to swap" pattern as storage. Switching to Ollama (truly local, no network) or a different provider would change only that file.
 
 ### Light theme only (v1)
 
@@ -147,11 +170,14 @@ src/
 ├── main.jsx             # React entry point
 ├── categories.js        # DEFAULT_CATEGORIES (seed list)
 ├── storage.js           # localStorage read/write + JSON export/import
+├── geminiApi.js         # Image → extracted entries via Gemini vision
 └── components/
     ├── MonthSelector.jsx      # <input type="month">
     ├── SummaryCards.jsx       # Income / Expenses / Balance cards
     ├── FilterChips.jsx        # All / Income / Expenses toggle
     ├── EntryTable.jsx         # Sorted table + empty state
     ├── EntryModal.jsx         # Add/edit form (modal popup)
-    └── CategoryManager.jsx    # Add/remove categories (modal)
+    ├── CategoryManager.jsx    # Add/remove categories (modal)
+    ├── SettingsModal.jsx      # Gemini API key + model (modal)
+    └── ReviewModal.jsx        # Review parsed entries before save (modal)
 ```

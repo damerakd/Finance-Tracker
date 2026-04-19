@@ -1,18 +1,23 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   loadState,
   saveEntry,
+  saveEntries,
   deleteEntry,
   saveCategories,
+  saveSettings,
   exportJSON,
   importJSON,
 } from './storage';
+import { parseFinancialImage } from './geminiApi';
 import MonthSelector from './components/MonthSelector';
 import SummaryCards from './components/SummaryCards';
 import FilterChips from './components/FilterChips';
 import EntryTable from './components/EntryTable';
 import EntryModal from './components/EntryModal';
 import CategoryManager from './components/CategoryManager';
+import SettingsModal from './components/SettingsModal';
+import ReviewModal from './components/ReviewModal';
 import './App.css';
 
 function currentMonth() {
@@ -24,11 +29,17 @@ export default function App() {
   const [state, setState] = useState({
     entries: [],
     categories: { income: [], expense: [] },
+    settings: { geminiApiKey: '', geminiModel: 'gemini-2.0-flash' },
   });
   const [month, setMonth] = useState(currentMonth());
   const [filter, setFilter] = useState('all');
   const [modal, setModal] = useState({ open: false, editing: null });
   const [catMgrOpen, setCatMgrOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [review, setReview] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const uploadInputRef = useRef(null);
 
   useEffect(() => {
     setState(loadState());
@@ -67,6 +78,10 @@ export default function App() {
     setState(saveCategories(categories));
   }
 
+  function handleSettingsSave(settings) {
+    setState(saveSettings(settings));
+  }
+
   function handleExport() {
     const blob = new Blob([exportJSON()], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -92,6 +107,39 @@ export default function App() {
     e.target.value = '';
   }
 
+  async function handleUpload(e) {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+
+    if (!state.settings.geminiApiKey) {
+      setUploadError('Add your Gemini API key in Settings first.');
+      setSettingsOpen(true);
+      return;
+    }
+
+    setUploading(true);
+    setUploadError('');
+    try {
+      const extracted = await parseFinancialImage(
+        file,
+        state.categories,
+        state.settings.geminiApiKey,
+        state.settings.geminiModel
+      );
+      setReview(extracted);
+    } catch (err) {
+      setUploadError(err.message || 'Failed to parse image');
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  function handleReviewSave(entries) {
+    if (entries.length > 0) setState(saveEntries(entries));
+    setReview(null);
+  }
+
   return (
     <div className="app">
       <header className="app-header">
@@ -100,6 +148,9 @@ export default function App() {
           <MonthSelector value={month} onChange={setMonth} />
           <button type="button" onClick={() => setCatMgrOpen(true)}>
             Categories
+          </button>
+          <button type="button" onClick={() => setSettingsOpen(true)}>
+            Settings
           </button>
           <button type="button" onClick={handleExport}>
             Export
@@ -114,15 +165,41 @@ export default function App() {
       <SummaryCards income={income} expense={expense} balance={balance} />
 
       <div className="controls">
-        <button
-          type="button"
-          className="add-btn"
-          onClick={() => setModal({ open: true, editing: null })}
-        >
-          + Add Entry
-        </button>
+        <div className="controls-left">
+          <button
+            type="button"
+            className="add-btn"
+            onClick={() => setModal({ open: true, editing: null })}
+          >
+            + Add Entry
+          </button>
+          <button
+            type="button"
+            className="upload-btn"
+            onClick={() => uploadInputRef.current?.click()}
+            disabled={uploading}
+          >
+            {uploading ? 'Parsing…' : 'Upload Receipt / Statement'}
+          </button>
+          <input
+            ref={uploadInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/heic,image/heif,application/pdf"
+            onChange={handleUpload}
+            hidden
+          />
+        </div>
         <FilterChips value={filter} onChange={setFilter} />
       </div>
+
+      {uploadError && (
+        <div className="upload-error" role="alert">
+          {uploadError}
+          <button type="button" onClick={() => setUploadError('')} aria-label="Dismiss">
+            ×
+          </button>
+        </div>
+      )}
 
       <EntryTable
         entries={visible}
@@ -144,6 +221,23 @@ export default function App() {
           categories={state.categories}
           onSave={handleCategoriesSave}
           onClose={() => setCatMgrOpen(false)}
+        />
+      )}
+
+      {settingsOpen && (
+        <SettingsModal
+          settings={state.settings}
+          onSave={handleSettingsSave}
+          onClose={() => setSettingsOpen(false)}
+        />
+      )}
+
+      {review && (
+        <ReviewModal
+          extracted={review}
+          categories={state.categories}
+          onSave={handleReviewSave}
+          onClose={() => setReview(null)}
         />
       )}
     </div>

@@ -110,6 +110,12 @@
   margin-bottom: 16px;
 }
 
+.controls-left {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .add-btn {
   padding: 10px 18px;
   background: var(--primary);
@@ -123,6 +129,50 @@
 
 .add-btn:hover {
   background: var(--primary-hover);
+}
+
+.upload-btn {
+  padding: 10px 18px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.upload-btn:hover:not(:disabled) {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+.upload-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.upload-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--expense-bg);
+  color: var(--expense);
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.upload-error button {
+  background: transparent;
+  color: var(--expense);
+  border: none;
+  font-size: 20px;
+  line-height: 1;
+  padding: 0 4px;
+  cursor: pointer;
 }
 
 .filter-chips {
@@ -389,6 +439,130 @@
 
 .modal-actions button.primary:hover {
   background: var(--primary-hover);
+}
+
+.modal-actions button.primary:disabled {
+  background: #a5b4fc;
+  border-color: #a5b4fc;
+  cursor: not-allowed;
+}
+
+/* ---------- Modal (wide variant for review) ---------- */
+.modal-wide {
+  max-width: 900px;
+}
+
+/* ---------- Settings modal ---------- */
+.key-row {
+  display: flex;
+  gap: 6px;
+}
+
+.key-row input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: ui-monospace, Menlo, monospace;
+}
+
+.key-row button {
+  padding: 8px 12px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.key-row button:hover {
+  background: #f3f4f6;
+}
+
+.hint {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.hint a {
+  color: var(--primary);
+}
+
+.hint code {
+  background: #f3f4f6;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 11px;
+}
+
+/* ---------- Review modal ---------- */
+.review-table-wrap {
+  max-height: 60vh;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-top: 8px;
+}
+
+.review-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.review-table th {
+  text-align: left;
+  background: #f9fafb;
+  color: var(--text-muted);
+  font-weight: 500;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+}
+
+.review-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.review-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.review-table tr.excluded {
+  opacity: 0.4;
+}
+
+.review-table input,
+.review-table select {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+  background: var(--surface);
+}
+
+.review-table input[type='checkbox'] {
+  width: auto;
+  margin: 0;
+}
+
+.review-table input[type='number'] {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.review-table .num {
+  width: 110px;
 }
 
 /* ---------- Category Manager ---------- */
