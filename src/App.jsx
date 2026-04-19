@@ -8,8 +8,12 @@ import {
   saveSettings,
   exportJSON,
   importJSON,
+  subscribe,
+  syncFromCloud,
+  resetCache,
 } from './storage';
 import { parseFinancialImage } from './geminiApi';
+import { getSession, onAuthChange, signOut } from './auth';
 import MonthSelector from './components/MonthSelector';
 import SummaryCards from './components/SummaryCards';
 import FilterChips from './components/FilterChips';
@@ -18,6 +22,7 @@ import EntryModal from './components/EntryModal';
 import CategoryManager from './components/CategoryManager';
 import SettingsModal from './components/SettingsModal';
 import ReviewModal from './components/ReviewModal';
+import LoginScreen from './components/LoginScreen';
 import './App.css';
 
 function currentMonth() {
@@ -26,11 +31,37 @@ function currentMonth() {
 }
 
 export default function App() {
-  const [state, setState] = useState({
-    entries: [],
-    categories: { income: [], expense: [] },
-    settings: { geminiApiKey: '', geminiModel: 'gemini-2.0-flash' },
-  });
+  const [session, setSession] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+
+  useEffect(() => {
+    getSession().then((s) => {
+      setSession(s);
+      setAuthLoading(false);
+    });
+    const unsub = onAuthChange((s) => {
+      setSession(s);
+      setAuthLoading(false);
+    });
+    return unsub;
+  }, []);
+
+  if (authLoading) {
+    return (
+      <div className="app-loading">
+        <p>Loading…</p>
+      </div>
+    );
+  }
+
+  if (!session) return <LoginScreen />;
+
+  return <Tracker session={session} syncing={syncing} setSyncing={setSyncing} />;
+}
+
+function Tracker({ session, syncing, setSyncing }) {
+  const [state, setState] = useState(() => loadState());
   const [month, setMonth] = useState(currentMonth());
   const [filter, setFilter] = useState('all');
   const [modal, setModal] = useState({ open: false, editing: null });
@@ -39,11 +70,32 @@ export default function App() {
   const [review, setReview] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
+  const [syncError, setSyncError] = useState('');
   const uploadInputRef = useRef(null);
 
   useEffect(() => {
-    setState(loadState());
+    const unsub = subscribe(setState);
+    return unsub;
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function sync() {
+      setSyncing(true);
+      setSyncError('');
+      try {
+        await syncFromCloud();
+      } catch (err) {
+        if (!cancelled) setSyncError(err?.message || 'Failed to sync');
+      } finally {
+        if (!cancelled) setSyncing(false);
+      }
+    }
+    sync();
+    return () => {
+      cancelled = true;
+    };
+  }, [session.user.id, setSyncing]);
 
   const monthEntries = useMemo(
     () => state.entries.filter((e) => e.date.startsWith(month)),
@@ -140,6 +192,11 @@ export default function App() {
     setReview(null);
   }
 
+  async function handleSignOut() {
+    await signOut();
+    resetCache();
+  }
+
   return (
     <div className="app">
       <header className="app-header">
@@ -159,8 +216,24 @@ export default function App() {
             Import
             <input type="file" accept=".json,application/json" onChange={handleImport} hidden />
           </label>
+          <span className="user-chip" title={session.user.email}>
+            {session.user.email}
+            {syncing && <span className="sync-dot" title="Syncing…" />}
+          </span>
+          <button type="button" onClick={handleSignOut}>
+            Sign out
+          </button>
         </div>
       </header>
+
+      {syncError && (
+        <div className="upload-error" role="alert">
+          Sync error: {syncError}
+          <button type="button" onClick={() => setSyncError('')} aria-label="Dismiss">
+            ×
+          </button>
+        </div>
+      )}
 
       <SummaryCards income={income} expense={expense} balance={balance} />
 

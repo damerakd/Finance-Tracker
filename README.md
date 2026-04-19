@@ -26,8 +26,9 @@ npm run preview
 - Filter the table by All / Income / Expenses
 - Add or remove your own categories
 - **Upload a receipt or statement image → Gemini extracts entries → you review before saving**
+- **Magic-link sign-in → entries and categories sync across every device you sign in on**
+- **Works offline** — localStorage keeps a full cache; writes queue and flush when you're back online
 - Export all data to a JSON file, import it back later
-- Data stays in your browser (except images you explicitly upload to Gemini)
 
 ## Data model
 
@@ -135,6 +136,36 @@ Gemini 1.5/2.0 Flash is the only option that hits all four. Free tier (1,500 req
 **Privacy note in the README and UI** — uploading an image sends that image to Google. For receipts that's usually fine; for statements with account numbers, users should redact first or skip.
 
 **All Gemini logic is behind `src/geminiApi.js`** — same "one module to swap" pattern as storage. Switching to Ollama (truly local, no network) or a different provider would change only that file.
+
+### Backend: Supabase (Postgres + magic-link auth)
+
+**Chosen over:** Firebase (Firestore), Cloudflare Workers + D1, Pocketbase, AWS (DynamoDB + Lambda + Cognito), file-sync via iCloud/Google Drive.
+
+The app now has a real backend so data follows you across devices. Supabase won because:
+
+- **Postgres.** Future features (yearly rollups, category breakdowns, charts, search) are SQL queries. Firestore's NoSQL model would fight us as soon as we needed `GROUP BY` or joins.
+- **Browser-safe by design.** The `sb_publishable_…` key is meant to ship in JS bundles. Row-level security policies (`auth.uid() = user_id`) do the real protection.
+- **Static Pages still works.** No frontend migration needed — SDK calls go directly from browser to Supabase.
+- **Light lock-in.** If we ever outgrow the free tier, `pg_dump` moves everything anywhere that runs Postgres.
+
+**Auth: magic link only (v1).** No passwords to manage, no OAuth provider dance. User types email → Supabase sends a one-time link → click = signed in. Session persisted in localStorage and auto-refreshed.
+
+**Offline-first: local cache + write queue.**
+- Reads always come from localStorage (instant, works offline).
+- Writes go to localStorage immediately (UI never waits), then enqueue a sync op.
+- The queue drains to Supabase whenever we're online and signed in. Offline? Ops sit safely in `localStorage['finance-tracker:queue']` until we reconnect (we listen to the browser's `online` event).
+- On sign-in, `syncFromCloud()` pulls the canonical state from Supabase and overwrites the cache — unless the cloud is empty and the cache has data, in which case we **seed the cloud with local data** (one-time migration path for existing users).
+
+**What's synced vs what isn't:**
+- ✅ `entries` — row-per-entry in `public.entries`, indexed on `(user_id, date)`
+- ✅ `user_categories` — one JSONB row per user (`income` + `expense` arrays)
+- ❌ `settings` (Gemini API key, model) — **stays local only.** Re-enter on each device. This limits blast radius if Supabase is ever compromised — all they'd get is entries and category names, no LLM keys.
+
+**Household / multi-user — deferred, but schema-ready.** Every row already has a `user_id`. Adding a `households` table + `household_id` column on `entries` is additive — no data migration needed when we decide to support spouses/family.
+
+**Sign-out wipes the local cache** so the next user on the device (or the same user on a shared machine) doesn't see stale data. Gemini settings are kept since they're device-local anyway.
+
+**Schema v3** adds the `settings` slot (from v2) and the sync queue.
 
 ### Light theme only (v1)
 
