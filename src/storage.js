@@ -7,7 +7,7 @@ const SCHEMA_VERSION = 3;
 
 const DEFAULT_SETTINGS = {
   geminiApiKey: '',
-  geminiModel: 'gemini-2.0-flash',
+  geminiModel: 'gemini-2.5-flash',
 };
 
 const subscribers = new Set();

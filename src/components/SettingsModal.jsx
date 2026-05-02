@@ -2,11 +2,11 @@ import { useState } from 'react';
 
 export default function SettingsModal({ settings, onSave, onClose }) {
   const [apiKey, setApiKey] = useState(settings.geminiApiKey || '');
-  const [model, setModel] = useState(settings.geminiModel || 'gemini-2.0-flash');
+  const [model, setModel] = useState(settings.geminiModel || 'gemini-2.5-flash');
   const [reveal, setReveal] = useState(false);
 
   function handleSave() {
-    onSave({ geminiApiKey: apiKey.trim(), geminiModel: model.trim() || 'gemini-2.0-flash' });
+    onSave({ geminiApiKey: apiKey.trim(), geminiModel: model.trim() || 'gemini-2.5-flash' });
     onClose();
   }
 
@@ -46,10 +46,10 @@ export default function SettingsModal({ settings, onSave, onClose }) {
             type="text"
             value={model}
             onChange={(e) => setModel(e.target.value)}
-            placeholder="gemini-2.0-flash"
+            placeholder="gemini-2.5-flash"
           />
           <p className="hint">
-            Default <code>gemini-2.0-flash</code>. Any Gemini vision model works.
+            Default <code>gemini-2.5-flash</code>. Any Gemini vision model works.
           </p>
         </div>
 

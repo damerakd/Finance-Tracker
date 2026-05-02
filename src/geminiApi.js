@@ -1,4 +1,4 @@
-const DEFAULT_MODEL = 'gemini-2.0-flash';
+const DEFAULT_MODEL = 'gemini-2.5-flash';
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 const ALLOWED_MIME = [
   'image/png',
