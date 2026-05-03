@@ -23,6 +23,7 @@ import CategoryManager from './components/CategoryManager';
 import SettingsModal from './components/SettingsModal';
 import ReviewModal from './components/ReviewModal';
 import LoginScreen from './components/LoginScreen';
+import CategoryPieChart from './components/CategoryPieChart';
 import './App.css';
 
 function currentMonth() {
@@ -236,6 +237,8 @@ function Tracker({ session, syncing, setSyncing }) {
       )}
 
       <SummaryCards income={income} expense={expense} balance={balance} />
+
+      <CategoryPieChart entries={monthEntries} />
 
       <div className="controls">
         <div className="controls-left">

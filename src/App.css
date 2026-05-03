@@ -242,6 +242,137 @@
   color: var(--expense);
 }
 
+/* ---------- Category pie chart ---------- */
+.chart-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.chart-header h2 {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.chart-toggle {
+  width: 220px;
+}
+
+.chart-body {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+}
+
+.pie {
+  width: 220px;
+  height: 220px;
+  flex-shrink: 0;
+}
+
+.pie path {
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.15s;
+  transform-origin: 50% 50%;
+}
+
+.pie.has-hover path:not(.hovered) {
+  opacity: 0.4;
+}
+
+.pie path.hovered {
+  transform: scale(1.03);
+}
+
+.chart-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 4px 16px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.chart-legend li {
+  display: grid;
+  grid-template-columns: 14px 1fr auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.chart-legend li:hover,
+.chart-legend li.hovered {
+  background: #f3f4f6;
+}
+
+.chart-legend .swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+.chart-legend .cat-name {
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chart-legend .cat-amt {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+.chart-legend .cat-pct {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  min-width: 42px;
+  text-align: right;
+}
+
+@media (max-width: 640px) {
+  .chart-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .chart-toggle {
+    width: 100%;
+  }
+  .chart-body {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .pie {
+    align-self: center;
+  }
+  .chart-legend {
+    grid-template-columns: 1fr;
+    max-height: none;
+  }
+}
+
 /* ---------- Controls row ---------- */
 .controls {
   display: flex;
