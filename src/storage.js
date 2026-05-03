@@ -24,6 +24,16 @@ function emptyState() {
   };
 }
 
+function mergeCategories(stored) {
+  // Backward-compat: older caches may not have a `transfer` key.
+  const c = stored || {};
+  return {
+    income: Array.isArray(c.income) ? c.income : DEFAULT_CATEGORIES.income,
+    expense: Array.isArray(c.expense) ? c.expense : DEFAULT_CATEGORIES.expense,
+    transfer: Array.isArray(c.transfer) ? c.transfer : DEFAULT_CATEGORIES.transfer,
+  };
+}
+
 function read() {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) return emptyState();
@@ -32,7 +42,7 @@ function read() {
     return {
       version: SCHEMA_VERSION,
       entries: Array.isArray(data.entries) ? data.entries : [],
-      categories: data.categories ?? DEFAULT_CATEGORIES,
+      categories: mergeCategories(data.categories),
       settings: { ...DEFAULT_SETTINGS, ...(data.settings || {}) },
     };
   } catch {
@@ -263,16 +273,20 @@ export async function syncFromCloud() {
     local.entries = cloudEntries;
   }
 
+  // Transfer categories are device-local (like settings) — never come from
+  // cloud. Always preserve whatever the local cache has for `transfer`.
+  const localTransfer = local.categories?.transfer ?? DEFAULT_CATEGORIES.transfer;
+
   if (!cloudCategories) {
     const seed = local.categories || DEFAULT_CATEGORIES;
     await applyOp({ t: 'set_categories', categories: seed }, userId);
-    local.categories = seed;
+    local.categories = { ...seed, transfer: localTransfer };
   } else if (cloudCategories.income.length + cloudCategories.expense.length === 0) {
     const seed = local.categories?.income?.length ? local.categories : DEFAULT_CATEGORIES;
     await applyOp({ t: 'set_categories', categories: seed }, userId);
-    local.categories = seed;
+    local.categories = { ...seed, transfer: localTransfer };
   } else {
-    local.categories = cloudCategories;
+    local.categories = { ...cloudCategories, transfer: localTransfer };
   }
 
   write(local);

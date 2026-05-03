@@ -9,6 +9,8 @@ const ALLOWED_MIME = [
   'application/pdf',
 ];
 
+const VALID_TYPES = new Set(['income', 'expense', 'transfer']);
+
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -25,22 +27,51 @@ function fileToBase64(file) {
 function buildPrompt(categories) {
   const incomeList = categories.income.join(', ');
   const expenseList = categories.expense.join(', ');
+  const transferList = (categories.transfer || []).join(', ');
   return `You extract financial transactions from images.
 
-The image is either:
-- A single receipt/invoice (extract ONE transaction, almost always an expense)
-- A bank or credit-card statement (extract MULTIPLE transactions — one per row)
-- A photo of any document showing transactions with dates and amounts
+STEP 1 — Identify the document type. Pick exactly one:
+  - "receipt"                — a single store/restaurant receipt or invoice
+  - "bank_statement"         — a checking / savings / debit account statement
+  - "credit_card_statement"  — a credit card statement or app screen
+  - "other"                  — anything else (notes, lists, etc.)
 
-For each transaction, extract:
-- date: ISO format YYYY-MM-DD. If only partial date is visible, use best guess; if no date at all, use today.
-- type: "income" or "expense". For statements, negative / debit / "withdrawal" entries are expenses; positive / credit / "deposit" / "payroll" entries are income. For receipts: always expense.
-- category: Pick the BEST match from the lists below. If nothing fits, use "Other".
-- amount: positive number only, no currency symbol, no commas. e.g. 45.50
-- description: merchant or short transaction description (<= 60 chars)
+STEP 2 — Apply the SIGN RULES that match the document type. The same dollar
+amount means OPPOSITE things on a bank vs. a credit card.
 
-Available income categories: ${incomeList}
-Available expense categories: ${expenseList}
+  receipt:
+    every line is an "expense". (Refund lines on receipts are rare; if you
+    clearly see a refund/return, mark it "income".)
+
+  bank_statement (checking / savings / debit):
+    positive  / credit  / deposit  / payroll       → "income"
+    negative  / debit   / withdrawal / purchase    → "expense"
+    transfers between the user's own accounts     → "transfer"
+
+  credit_card_statement (THE SIGN IS INVERTED vs. bank):
+    positive  / charge  / purchase / "sale"        → "expense"   (you spent money)
+    negative  / payment / "PAYMENT THANK YOU"
+              / credit  / refund / return / reversal → "transfer" (NOT income)
+    Skip pending charges — they may not post.
+
+  other:
+    return [] unless transactions are unambiguously visible.
+
+STEP 3 — For each transaction, emit:
+  - date:        YYYY-MM-DD. If only a partial date is visible, infer the year
+                 from context. If no date at all, use today.
+  - type:        "income" | "expense" | "transfer"  (see STEP 2)
+  - category:    pick the BEST match from the list for that type below.
+                 If nothing fits, use "Other".
+  - amount:      positive number, no currency symbol, no commas. e.g. 45.50
+                 Always positive — the sign is encoded in "type", not the number.
+  - description: merchant or short description (<= 60 chars). Strip trailing
+                 reference numbers / store IDs.
+
+Available categories:
+  income:   ${incomeList}
+  expense:  ${expenseList}
+  transfer: ${transferList}
 
 Return ONLY a JSON array, no prose, no markdown fences. Example:
 [{"date":"2026-04-19","type":"expense","category":"Food","amount":12.50,"description":"Starbucks"}]
@@ -50,9 +81,8 @@ If the image has no readable financial data, return [].`;
 
 function validateEntries(raw, categories) {
   if (!Array.isArray(raw)) return [];
-  const validTypes = new Set(['income', 'expense']);
   return raw
-    .filter((e) => e && validTypes.has(e.type) && typeof e.amount === 'number' && e.amount > 0)
+    .filter((e) => e && VALID_TYPES.has(e.type) && typeof e.amount === 'number' && e.amount > 0)
     .map((e) => {
       const type = e.type;
       const pool = categories[type] || [];

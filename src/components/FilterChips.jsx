@@ -2,6 +2,7 @@ const OPTIONS = [
   { value: 'all', label: 'All' },
   { value: 'income', label: 'Income' },
   { value: 'expense', label: 'Expenses' },
+  { value: 'transfer', label: 'Transfers' },
 ];
 
 export default function FilterChips({ value, onChange }) {

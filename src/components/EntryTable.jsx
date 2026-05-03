@@ -36,7 +36,7 @@ export default function EntryTable({ entries, onEdit, onDelete }) {
               </td>
               <td>{e.category}</td>
               <td className={`num amount amount-${e.type}`}>
-                {e.type === 'expense' ? '−' : '+'}
+                {e.type === 'expense' ? '−' : e.type === 'income' ? '+' : '↔ '}
                 {fmt(e.amount)}
               </td>
               <td className="desc">{e.description}</td>

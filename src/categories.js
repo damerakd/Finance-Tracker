@@ -15,4 +15,5 @@ export const DEFAULT_CATEGORIES = {
     'Health',
     'Other',
   ],
+  transfer: ['Card Payment', 'Account Transfer', 'Other'],
 };

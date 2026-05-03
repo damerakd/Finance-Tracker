@@ -87,6 +87,7 @@ export default function ReviewModal({ extracted, categories, onSave, onClose }) 
                       >
                         <option value="income">income</option>
                         <option value="expense">expense</option>
+                        <option value="transfer">transfer</option>
                       </select>
                     </td>
                     <td>

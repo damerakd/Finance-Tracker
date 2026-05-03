@@ -402,6 +402,10 @@
   color: var(--expense);
 }
 
+.amount-transfer {
+  color: var(--transfer);
+}
+
 .type-badge {
   display: inline-block;
   padding: 2px 8px;
@@ -419,6 +423,11 @@
 .type-expense {
   background: var(--expense-bg);
   color: var(--expense);
+}
+
+.type-transfer {
+  background: var(--transfer-bg);
+  color: var(--transfer);
 }
 
 .desc {
@@ -525,6 +534,10 @@
   background: #f3f4f6;
   border-radius: 8px;
   padding: 4px;
+}
+
+.type-toggle-3 {
+  grid-template-columns: 1fr 1fr 1fr;
 }
 
 .type-toggle button {

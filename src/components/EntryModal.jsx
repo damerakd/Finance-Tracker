@@ -53,7 +53,7 @@ export default function EntryModal({ entry, categories, onSave, onClose }) {
         <form onSubmit={handleSubmit}>
           <div className="form-row">
             <label>Type</label>
-            <div className="type-toggle">
+            <div className="type-toggle type-toggle-3">
               <button
                 type="button"
                 className={type === 'income' ? 'active' : ''}
@@ -67,6 +67,13 @@ export default function EntryModal({ entry, categories, onSave, onClose }) {
                 onClick={() => handleTypeChange('expense')}
               >
                 Expense
+              </button>
+              <button
+                type="button"
+                className={type === 'transfer' ? 'active' : ''}
+                onClick={() => handleTypeChange('transfer')}
+              >
+                Transfer
               </button>
             </div>
           </div>

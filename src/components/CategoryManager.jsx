@@ -1,18 +1,24 @@
 import { useState } from 'react';
 
+const SECTIONS = [
+  { key: 'income', title: 'Income', placeholder: 'New income category' },
+  { key: 'expense', title: 'Expense', placeholder: 'New expense category' },
+  { key: 'transfer', title: 'Transfer', placeholder: 'New transfer category' },
+];
+
 export default function CategoryManager({ categories, onSave, onClose }) {
   const [local, setLocal] = useState(() => ({
-    income: [...categories.income],
-    expense: [...categories.expense],
+    income: [...(categories.income || [])],
+    expense: [...(categories.expense || [])],
+    transfer: [...(categories.transfer || [])],
   }));
-  const [newIncome, setNewIncome] = useState('');
-  const [newExpense, setNewExpense] = useState('');
+  const [draft, setDraft] = useState({ income: '', expense: '', transfer: '' });
 
-  function add(type, name, reset) {
-    const trimmed = name.trim();
+  function add(type) {
+    const trimmed = draft[type].trim();
     if (!trimmed || local[type].includes(trimmed)) return;
     setLocal({ ...local, [type]: [...local[type], trimmed] });
-    reset('');
+    setDraft({ ...draft, [type]: '' });
   }
 
   function remove(type, name) {
@@ -29,65 +35,37 @@ export default function CategoryManager({ categories, onSave, onClose }) {
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <h2>Manage Categories</h2>
 
-        <div className="cat-section">
-          <h3>Income</h3>
-          <ul className="cat-list">
-            {local.income.map((c) => (
-              <li key={c}>
-                <span>{c}</span>
-                <button type="button" onClick={() => remove('income', c)} aria-label={`Remove ${c}`}>
-                  ×
-                </button>
-              </li>
-            ))}
-          </ul>
-          <div className="cat-add">
-            <input
-              value={newIncome}
-              onChange={(e) => setNewIncome(e.target.value)}
-              placeholder="New income category"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  add('income', newIncome, setNewIncome);
-                }
-              }}
-            />
-            <button type="button" onClick={() => add('income', newIncome, setNewIncome)}>
-              Add
-            </button>
+        {SECTIONS.map(({ key, title, placeholder }) => (
+          <div key={key} className="cat-section">
+            <h3>{title}</h3>
+            <ul className="cat-list">
+              {local[key].map((c) => (
+                <li key={c}>
+                  <span>{c}</span>
+                  <button type="button" onClick={() => remove(key, c)} aria-label={`Remove ${c}`}>
+                    ×
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <div className="cat-add">
+              <input
+                value={draft[key]}
+                onChange={(e) => setDraft({ ...draft, [key]: e.target.value })}
+                placeholder={placeholder}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    add(key);
+                  }
+                }}
+              />
+              <button type="button" onClick={() => add(key)}>
+                Add
+              </button>
+            </div>
           </div>
-        </div>
-
-        <div className="cat-section">
-          <h3>Expense</h3>
-          <ul className="cat-list">
-            {local.expense.map((c) => (
-              <li key={c}>
-                <span>{c}</span>
-                <button type="button" onClick={() => remove('expense', c)} aria-label={`Remove ${c}`}>
-                  ×
-                </button>
-              </li>
-            ))}
-          </ul>
-          <div className="cat-add">
-            <input
-              value={newExpense}
-              onChange={(e) => setNewExpense(e.target.value)}
-              placeholder="New expense category"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  add('expense', newExpense, setNewExpense);
-                }
-              }}
-            />
-            <button type="button" onClick={() => add('expense', newExpense, setNewExpense)}>
-              Add
-            </button>
-          </div>
-        </div>
+        ))}
 
         <div className="modal-actions">
           <button type="button" onClick={onClose}>
